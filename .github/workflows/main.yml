@@ -34,7 +34,15 @@ jobs:
         working-directory: ./terraform
         run: terraform apply -auto-approve
 
-      - name: Sync web files to S3
+      - name: Subir archivos del sitio a S3
         run: |
+          echo "Obteniendo el nombre del bucket..."
           BUCKET=$(terraform -chdir=./terraform output -raw bucket_name)
-          aws s3 sync . s3://$BUCKET --exclude "terraform/*" --exclude ".git/*" --delete
+          echo "Bucket detectado: $BUCKET"
+          aws s3 sync . s3://$BUCKET \
+            --exclude "terraform/*" \
+            --exclude ".git/*" \
+            --exclude ".github/*" \
+            --exclude "*.yaml" \
+            --exclude "*.yml" \
+            --delete
