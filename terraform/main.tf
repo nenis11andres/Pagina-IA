@@ -50,3 +50,11 @@ output "bucket_name" {
   value = aws_s3_bucket.pagina_ia.bucket
 }
 
+output "bucket_name" {
+  value = aws_s3_bucket.pagina_ia.bucket
+}
+
+output "website_url" {
+  value = aws_s3_bucket.pagina_ia.website_endpoint
+}
+
