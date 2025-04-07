@@ -1,5 +1,58 @@
-- name: Obtener nombre del bucket
-  id: get_bucket
-  run: |
-    BUCKET=$(terraform -chdir=./terraform output -raw bucket_name)
-    echo "bucket_name=$BUCKET" >> "$GITHUB_OUTPUT"
+name: Deploy Pagina-IA
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: us-east-1
+
+      - name: Inicializar Terraform
+        working-directory: ./terraform
+        run: terraform init
+
+      - name: Aplicar Terraform
+        working-directory: ./terraform
+        run: terraform apply -auto-approve
+
+      - name: Obtener nombre del bucket
+        id: get_bucket
+        run: |
+          BUCKET=$(terraform -chdir=./terraform output -raw bucket_name)
+          echo "bucket_name=$BUCKET" >> "$GITHUB_OUTPUT"
+
+      - name: Subir archivos del sitio a S3
+        run: |
+          echo "Bucket detectado: ${{ steps.get_bucket.outputs.bucket_name }}"
+          aws s3 sync . s3://${{ steps.get_bucket.outputs.bucket_name }} \
+            --exclude "terraform/*" \
+            --exclude ".git/*" \
+            --exclude ".github/*" \
+            --exclude "*.yaml" \
+            --exclude "*.yml" \
+            --delete
+
+      - name: Mostrar URL del sitio web
+        run: |
+          WEBSITE_URL=$(terraform -chdir=./terraform output -raw website_url)
+          echo " Sitio desplegado en: http://$WEBSITE_URL"
+
