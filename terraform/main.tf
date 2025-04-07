@@ -46,6 +46,6 @@ resource "aws_s3_bucket_policy" "policy" {
 }
 
 
-output "url_web" {
+output "bucket_name" {
   value = aws_s3_bucket.pagina_ia.website_endpoint
 }
