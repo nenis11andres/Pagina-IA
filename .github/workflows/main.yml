@@ -26,18 +26,15 @@ jobs:
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           aws-region: us-east-1
 
-      - name: Inicializar y aplicar Terraform
-        working-directory: ./terraform
+      - name: Inicializar, aplicar Terraform y subir archivos al bucket
         run: |
+          echo "📦 Iniciando Terraform..."
+          cd terraform
           terraform init
           terraform apply -auto-approve
-
-      - name: Subir archivos al bucket S3
-        run: |
-          cd terraform
           BUCKET=$(terraform output -raw bucket_name)
+          echo "📤 Bucket detectado: $BUCKET"
           cd ..
-          echo "Subiendo archivos al bucket: $BUCKET"
           aws s3 sync . s3://$BUCKET \
             --exclude "terraform/*" \
             --exclude ".git/*" \
