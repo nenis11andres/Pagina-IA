@@ -31,6 +31,8 @@ resource "aws_s3_bucket_public_access_block" "no_block_public_access" {
 resource "aws_s3_bucket_policy" "policy" {
   bucket = aws_s3_bucket.pagina_ia.id
 
+  depends_on = [aws_s3_bucket_public_access_block.no_block_public_access]
+
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -42,6 +44,7 @@ resource "aws_s3_bucket_policy" "policy" {
     }]
   })
 }
+
 
 output "url_web" {
   value = aws_s3_bucket.pagina_ia.website_endpoint
