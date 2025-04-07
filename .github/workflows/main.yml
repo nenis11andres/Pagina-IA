@@ -36,9 +36,15 @@ jobs:
 
       - name: Obtener nombre del bucket
         id: get_bucket
+        working-directory: ./terraform
         run: |
-          BUCKET=$(terraform -chdir=./terraform output -raw bucket_name)
-          echo "bucket_name=$BUCKET" >> "$GITHUB_OUTPUT"
+          BUCKET=$(terraform output -raw bucket_name)
+          echo "bucket_name=${BUCKET}" >> $GITHUB_OUTPUT
+
+      - name: Verificar existencia del bucket
+        run: |
+          echo "Verificando bucket: ${{ steps.get_bucket.outputs.bucket_name }}"
+          aws s3 ls s3://${{ steps.get_bucket.outputs.bucket_name }}
 
       - name: Subir archivos del sitio a S3
         run: |
@@ -52,7 +58,7 @@ jobs:
             --delete
 
       - name: Mostrar URL del sitio web
+        working-directory: ./terraform
         run: |
-          WEBSITE_URL=$(terraform -chdir=./terraform output -raw website_url)
-          echo " Sitio desplegado en: http://$WEBSITE_URL"
-
+          WEBSITE_URL=$(terraform output -raw website_url)
+          echo "🚀 Sitio desplegado en: http://$WEBSITE_URL"
