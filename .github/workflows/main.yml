@@ -32,9 +32,11 @@ jobs:
           terraform init
           terraform apply -auto-approve
 
-      - name: Obtener nombre del bucket y subir archivos
+      - name: Subir archivos al bucket S3
         run: |
-          BUCKET=$(terraform -chdir=./terraform output -raw bucket_name)
+          cd terraform
+          BUCKET=$(terraform output -raw bucket_name)
+          cd ..
           echo "Subiendo archivos al bucket: $BUCKET"
           aws s3 sync . s3://$BUCKET \
             --exclude "terraform/*" \
