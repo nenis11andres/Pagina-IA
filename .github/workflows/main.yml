@@ -26,23 +26,30 @@ jobs:
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           aws-region: us-east-1
 
-      - name: Initialize Terraform
+      - name: Inicializar Terraform
         working-directory: ./terraform
         run: terraform init
 
-      - name: Apply Terraform
+      - name: Aplicar Terraform
         working-directory: ./terraform
         run: terraform apply -auto-approve
 
+      - name: Obtener nombre del bucket
+        id: get_bucket
+        run: echo "bucket_name=$(terraform -chdir=./terraform output -raw bucket_name)" >> $GITHUB_OUTPUT
+
       - name: Subir archivos del sitio a S3
         run: |
-          echo "Obteniendo el nombre del bucket..."
-          BUCKET=$(terraform -chdir=./terraform output -raw bucket_name)
-          echo "Bucket detectado: $BUCKET"
-          aws s3 sync . s3://$BUCKET \
+          echo "Bucket detectado: ${{ steps.get_bucket.outputs.bucket_name }}"
+          aws s3 sync . s3://${{ steps.get_bucket.outputs.bucket_name }} \
             --exclude "terraform/*" \
             --exclude ".git/*" \
             --exclude ".github/*" \
             --exclude "*.yaml" \
             --exclude "*.yml" \
             --delete
+
+      - name: Mostrar URL del sitio web
+        run: |
+          WEBSITE_URL=$(terraform -chdir=./terraform output -raw website_url)
+          echo "Sitio desplegado en: http://$WEBSITE_URL"
