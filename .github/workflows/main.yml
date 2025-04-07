@@ -35,15 +35,15 @@ jobs:
         run: terraform apply -auto-approve
 
       - name: Obtener nombre del bucket
-        id: get_bucket
-        working-directory: ./terraform
+        id: bucket
         run: |
-          echo "bucket_name=$(terraform output -raw bucket_name)" >> $GITHUB_OUTPUT
+          BUCKET_NAME=$(cd terraform && terraform output -raw bucket_name)
+          echo "BUCKET_NAME=$BUCKET_NAME" >> $GITHUB_ENV
 
       - name: Subir archivos al bucket S3
         run: |
-          echo "Subiendo archivos a: ${{ steps.get_bucket.outputs.bucket_name }}"
-          aws s3 sync . s3://${{ steps.get_bucket.outputs.bucket_name }} \
+          echo "Subiendo archivos al bucket: $BUCKET_NAME"
+          aws s3 sync . s3://$BUCKET_NAME \
             --exclude "terraform/*" \
             --exclude ".git/*" \
             --exclude ".github/*" \
