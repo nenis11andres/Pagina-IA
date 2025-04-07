@@ -1,4 +1,4 @@
-name: Deploy Pagina IA
+name: Deploy a S3 Static Website
 
 on:
   push:
@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repositorio
+      - name: Checkout código
         uses: actions/checkout@v3
 
       - name: Configurar credenciales AWS
@@ -35,17 +35,23 @@ jobs:
         run: terraform apply -auto-approve
 
       - name: Obtener nombre del bucket
-        id: get_bucket_name
+        id: bucket
+        working-directory: ./terraform
         run: |
-          echo "BUCKET_NAME=$(cd terraform && terraform output -raw bucket_name)" >> $GITHUB_ENV
+          echo "BUCKET_NAME=$(terraform output -raw bucket_name)" >> "$GITHUB_ENV"
 
       - name: Subir archivos al bucket
         run: |
-          echo "Subiendo archivos a $BUCKET_NAME"
+          echo "Subiendo archivos a S3 bucket: $BUCKET_NAME"
           aws s3 sync . s3://$BUCKET_NAME \
             --exclude "terraform/*" \
             --exclude ".git/*" \
             --exclude ".github/*" \
-            --exclude "*.yaml" \
             --exclude "*.yml" \
             --delete
+
+      - name: Mostrar URL del sitio
+        working-directory: ./terraform
+        run: |
+          WEBSITE_URL=$(terraform output -raw website_url)
+          echo "🌍 Sitio desplegado en: http://$WEBSITE_URL"
