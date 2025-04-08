@@ -38,4 +38,8 @@ jobs:
         with:
           name: terraform-state
           path: terraform/terraform.tfstate
+          
+      - name: Verificar si el archivo terraform.tfstate existe
+        run: ls -l terraform/terraform.tfstate
+
 
