@@ -9,7 +9,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: terraform  # Especifica el directorio de trabajo de Terraform
+        working-directory: terraform  # Mantén esto como está, para usar el directorio terraform
 
     steps:
       - name: Checkout repo
@@ -31,13 +31,13 @@ jobs:
       - name: Download tfstate artifact
         uses: actions/download-artifact@v4
         with:
-          name: terraform-state  # Nombre del artefacto subido
-          path: terraform        # Ruta en la que se descargará el artefacto
+          name: terraform-state  # Asegúrate de que este nombre coincida con el nombre del artefacto subido
+          path: terraform/       # Aquí corregimos la ruta para que coincida con la ubicación de terraform.tfstate
 
       - name: Verify terraform.tfstate file
         run: |
           echo "Verificando si terraform.tfstate existe"
-          ls -l terraform/terraform.tfstate
+          ls -l terraform/terraform.tfstate  # Verificar que el archivo se descargó correctamente
 
       - name: Terraform init
         run: terraform init
