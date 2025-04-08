@@ -1,4 +1,4 @@
-name: Desplegar Página IA en S3
+name: Desplegar página en S3
 
 on:
   push:
@@ -9,51 +9,39 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
+    defaults:
+      run:
+        shell: bash
+
     steps:
-      - name: 📥 Clonar repositorio
+      - name: Clonar repositorio
         uses: actions/checkout@v3
 
-      - name: 🛠️ Configurar Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: 1.5.0
-
-      - name: 🔐 Configurar credenciales de AWS
+      - name: Configurar credenciales de AWS
         uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
-          aws-region: us-east-1
+          aws-region: eu-west-1  # Cambia si usas otra región
 
-      - name: 📦 Inicializar Terraform
-        working-directory: ./terraform
+      - name: Inicializar Terraform
+        working-directory: terraform
         run: terraform init
 
-      - name: 🚀 Aplicar Terraform
-        working-directory: ./terraform
+      - name: Validar Terraform
+        working-directory: terraform
+        run: terraform validate
+
+      - name: Planificar Terraform
+        working-directory: terraform
+        run: terraform plan
+
+      - name: Aplicar Terraform automáticamente
+        working-directory: terraform
         run: terraform apply -auto-approve
 
-      - name: 📤 Obtener nombre del bucket de forma segura
-        id: get_bucket
-        working-directory: ./terraform
+      - name: Mostrar URL del sitio web
+        working-directory: terraform
         run: |
-          terraform output -raw bucket_name > bucket_name.txt
-          echo "bucket_name=$(cat bucket_name.txt)" >> $GITHUB_ENV
-
-      - name: ⬆️ Subir archivos al bucket S3
-        run: |
-          echo "Subiendo al bucket: $bucket_name"
-          aws s3 sync . s3://$bucket_name \
-            --exclude ".git/*" \
-            --exclude ".github/*" \
-            --exclude "terraform/*" \
-            --exclude "*.yaml" \
-            --exclude "*.yml" \
-            --delete
-
-      - name: 🌐 Mostrar URL del sitio
-        working-directory: ./terraform
-        run: |
-          WEBSITE_URL=$(terraform output -raw website_url)
-          echo "✅ Sitio desplegado en: http://$WEBSITE_URL"
+          echo "URL del sitio:"
+          terraform output website_url
