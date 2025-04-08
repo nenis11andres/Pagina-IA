@@ -45,6 +45,40 @@ resource "aws_s3_bucket_policy" "policy" {
   })
 }
 
+resource "aws_s3_object" "index" {
+  bucket       = aws_s3_bucket.pagina_ia.id
+  key          = "index.html"
+  source       = "${path.module}/../index.html"
+  content_type = "text/html"
+}
+
+resource "aws_s3_object" "css" {
+  bucket       = aws_s3_bucket.pagina_ia.id
+  key          = "estilos.css"
+  source       = "${path.module}/../estilos.css"
+  content_type = "text/css"
+}
+
+resource "aws_s3_object" "assets" {
+  for_each     = fileset("${path.module}/../assets", "**")
+  bucket       = aws_s3_bucket.pagina_ia.id
+  key          = "assets/${each.value}"
+  source       = "${path.module}/../assets/${each.value}"
+  content_type = lookup(
+    {
+      "png"  = "image/png"
+      "jpg"  = "image/jpeg"
+      "jpeg" = "image/jpeg"
+      "svg"  = "image/svg+xml"
+      "gif"  = "image/gif"
+    },
+    split(".", each.value)[length(split(".", each.value)) - 1],
+    "application/octet-stream"
+  )
+}
+
+
+
 
 output "bucket_name" {
   value = aws_s3_bucket.pagina_ia.bucket
