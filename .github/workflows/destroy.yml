@@ -9,7 +9,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: terraform
+        working-directory: terraform  # Especifica el directorio de trabajo de Terraform
 
     steps:
       - name: Checkout repo
@@ -17,6 +17,8 @@ jobs:
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.0  # (Opcional) Puedes especificar la versión de Terraform
 
       - name: Set AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -29,8 +31,13 @@ jobs:
       - name: Download tfstate artifact
         uses: actions/download-artifact@v4
         with:
-          name: terraform-state
-          path: terraform
+          name: terraform-state  # Nombre del artefacto subido
+          path: terraform        # Ruta en la que se descargará el artefacto
+
+      - name: Verify terraform.tfstate file
+        run: |
+          echo "Verificando si terraform.tfstate existe"
+          ls -l terraform/terraform.tfstate
 
       - name: Terraform init
         run: terraform init
