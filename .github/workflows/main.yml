@@ -1,50 +1,20 @@
 name: Desplegar Página IA en S3
 
 on:
-  push:
-    branches:
-      - main
+  workflow_run:
+    workflows: ["Desplegar Infraestructura Básica"]  # Nombre del workflow que despliega bootstrap
+    types:
+      - completed
 
 jobs:
-  # Primero ejecutamos el flujo de bootstrap
-  bootstrap:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Clonar repositorio
-        uses: actions/checkout@v3
-
-      - name: Configurar Terraform (Bootstrap)
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: 1.5.0
-
-      - name: 🔐 Configurar credenciales de AWS
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
-          aws-region: us-east-1
-
-      - name: Inicializar Terraform (Bootstrap)
-        working-directory: ./bootstrap
-        run: terraform init
-
-      - name: Aplicar Terraform (Bootstrap)
-        working-directory: ./bootstrap
-        run: terraform apply -auto-approve
-
-  # Luego ejecutamos el flujo de despliegue principal
   deploy:
-    needs: bootstrap  # Esto garantiza que el job `bootstrap` termine antes de empezar `deploy`
     runs-on: ubuntu-latest
 
     steps:
-      - name: Clonar repositorio
+      - name:  Clonar repositorio
         uses: actions/checkout@v3
 
-      - name: Configurar Terraform
+      - name:  Configurar Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.5.0
@@ -57,12 +27,17 @@ jobs:
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           aws-region: us-east-1
 
-      - name: Inicializar Terraform
+      - name:  Inicializar Terraform
         working-directory: ./terraform
-        run: terraform init -force-copy  # Añadimos -force-copy
+        run: terraform init -force-copy  # Aquí añadimos -force-copy
 
-      - name: Aplicar Terraform
+      - name:  Aplicar Terraform
         working-directory: ./terraform
         run: terraform apply -auto-approve
 
-    
+      - name:  Obtener nombre del bucket de forma segura
+        id: get_bucket
+        working-directory: ./terraform
+        run: |
+          terraform output -raw bucket_name > bucket_name.txt
+          echo "bucket_name=$(cat bucket_name.txt)" >> $GITHUB_ENV
