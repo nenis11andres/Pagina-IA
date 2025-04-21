@@ -1,7 +1,7 @@
 name: Terraform Destroy
 
 on:
-  workflow_dispatch:  # Lo lanzas manualmente desde GitHub
+  workflow_dispatch:
 
 jobs:
   destroy:
@@ -10,6 +10,8 @@ jobs:
     env:
       AWS_REGION: us-east-1
       BUCKET_NAME: aop-pagina-ia
+      DYNAMO_TABLE_NAME: terraform-lock-table
+      TFSTATE_KEY: terraform/terraform.tfstate
 
     steps:
       - name: Checkout repo
@@ -26,12 +28,24 @@ jobs:
       - name: Install Terraform
         uses: hashicorp/setup-terraform@v3
 
-      - name: Delete all files in S3 bucket
+      - name: Delete all objects in S3 bucket
         run: |
-          echo "Eliminando contenido del bucket: $BUCKET_NAME"
-          aws s3 rm s3://$BUCKET_NAME --recursive
+          echo "🧹 Borrando objetos del bucket..."
+          aws s3 rm s3://$BUCKET_NAME --recursive || true
 
-      - name: Terraform Init
+      - name: Delete Terraform state file from S3
+        run: |
+          echo "🧨 Borrando archivo terraform.tfstate del bucket..."
+          aws s3 rm s3://$BUCKET_NAME/$TFSTATE_KEY || true
+
+      - name: Delete lock from DynamoDB
+        run: |
+          echo "🔓 Borrando LockID de DynamoDB..."
+          aws dynamodb delete-item \
+            --table-name $DYNAMO_TABLE_NAME \
+            --key "{\"LockID\": {\"S\": \"$TFSTATE_KEY\"}}" || true
+
+      - name: Terraform Init (re-init clean)
         working-directory: ./terraform
         run: terraform init
 
