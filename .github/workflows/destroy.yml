@@ -1,7 +1,7 @@
 name: Destruir Infraestructura con Terraform
 
 on:
-  workflow_dispatch:  # Se lanza manualmente desde GitHub
+  workflow_dispatch:
 
 jobs:
   destruir:
@@ -12,6 +12,7 @@ jobs:
       BUCKET_NAME: aop-pagina-ia
       STATE_KEY: terraform/terraform.tfstate
       LOCK_ID: terraform/terraform.tfstate
+      DYNAMODB_TABLE: terraform-lock-table
 
     steps:
       - name: Descargar repositorio
@@ -28,22 +29,23 @@ jobs:
       - name: Instalar Terraform
         uses: hashicorp/setup-terraform@v3
 
-      - name: Eliminar archivos del bucket S3 (opcional)
+      - name: Eliminar archivos del bucket S3
         run: |
-          echo "Eliminando archivos del bucket: $BUCKET_NAME"
+          echo "🧹 Eliminando archivos del bucket: $BUCKET_NAME"
           aws s3 rm s3://$BUCKET_NAME --recursive || true
 
-      - name: Eliminar archivo de estado de Terraform del bucket S3
+      - name: Eliminar archivo de estado remoto (S3)
         run: |
-          echo "Eliminando archivo de estado de Terraform del bucket"
+          echo "🧨 Eliminando estado remoto: $STATE_KEY"
           aws s3 rm s3://$BUCKET_NAME/${STATE_KEY} || true
 
-      - name: Eliminar lock de la tabla DynamoDB
+      - name: Limpiar checksum (Digest) en DynamoDB
         run: |
-          echo "Eliminando el lock de DynamoDB..."
-          aws dynamodb delete-item \
-            --table-name terraform-lock-table \
-            --key "{\"LockID\": {\"S\": \"${LOCK_ID}\"}}" || true
+          echo "🔧 Eliminando atributo Digest de DynamoDB..."
+          aws dynamodb update-item \
+            --table-name $DYNAMODB_TABLE \
+            --key "{\"LockID\": {\"S\": \"${LOCK_ID}\"}}" \
+            --update-expression "REMOVE Digest" || true
 
       - name: Inicializar Terraform
         working-directory: ./terraform
