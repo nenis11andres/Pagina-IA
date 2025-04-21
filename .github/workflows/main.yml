@@ -33,9 +33,4 @@ jobs:
         working-directory: ./terraform
         run: terraform apply -auto-approve
 
-      - name:  Obtener nombre del bucket de forma segura
-        id: get_bucket
-        working-directory: ./terraform
-        run: |
-          terraform output -raw bucket_name > bucket_name.txt
-          echo "bucket_name=$(cat bucket_name.txt)" >> $GITHUB_ENV
+      
