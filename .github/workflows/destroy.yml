@@ -29,29 +29,29 @@ jobs:
       - name: Instalar Terraform
         uses: hashicorp/setup-terraform@v3
 
-      - name: Eliminar todas las versiones y delete markers del bucket
+      - name: 🧹 Eliminar objetos del bucket
         run: |
-          echo "🧹 Borrando TODAS las versiones y delete markers del bucket: $BUCKET_NAME"
+          echo "🧼 Borrando objetos actuales del bucket..."
+          aws s3 rm s3://$BUCKET_NAME --recursive || true
 
-          while true; do
-            versions=$(aws s3api list-object-versions --bucket $BUCKET_NAME --query="{Objects: Versions[].{Key: Key, VersionId: VersionId}}" --output json)
-            markers=$(aws s3api list-object-versions --bucket $BUCKET_NAME --query="{Objects: DeleteMarkers[].{Key: Key, VersionId: VersionId}}" --output json)
+      - name: 🔥 Borrar versiones y delete markers
+        run: |
+          echo "🧼 Borrando versiones y delete markers del bucket $BUCKET_NAME..."
+          versions=$(aws s3api list-object-versions --bucket $BUCKET_NAME --query='{Objects: Versions[].{Key:Key,VersionId:VersionId}}' --output=json)
+          delete_markers=$(aws s3api list-object-versions --bucket $BUCKET_NAME --query='{Objects: DeleteMarkers[].{Key:Key,VersionId:VersionId}}' --output=json)
 
-            combined=$(jq -s '.[0].Objects + .[1].Objects | {Objects: .}' <(echo "$versions") <(echo "$markers"))
+          echo "$versions" > versions.json
+          echo "$delete_markers" > delete-markers.json
 
-            count=$(echo "$combined" | jq '.Objects | length')
+          jq -s '.[0].Objects + .[1].Objects | {Objects: .}' versions.json delete-markers.json > all.json
 
-            if [ "$count" -eq "0" ]; then
-              echo "✅ No quedan versiones ni delete markers."
-              break
-            fi
+          if [ "$(jq '.Objects | length' all.json)" -gt 0 ]; then
+            aws s3api delete-objects --bucket $BUCKET_NAME --delete file://all.json
+          else
+            echo "✅ No hay versiones o delete markers que eliminar"
+          fi
 
-            echo "$combined" > delete.json
-            aws s3api delete-objects --bucket $BUCKET_NAME --delete file://delete.json
-            sleep 2
-          done
-
-      - name: Eliminar archivo de estado remoto
+      - name: Eliminar estado remoto S3
         run: |
           echo "🧨 Eliminando archivo de estado remoto: $STATE_KEY"
           aws s3 rm s3://$BUCKET_NAME/${STATE_KEY} || true
@@ -63,10 +63,10 @@ jobs:
             --table-name $DYNAMODB_TABLE \
             --key "{\"LockID\": {\"S\": \"${LOCK_ID}\"}}" || true
 
-      - name: Inicializar Terraform con -force-copy
+      - name: Inicializar Terraform
         working-directory: ./terraform
         run: terraform init -force-copy
 
       - name: Ejecutar Terraform Destroy
         working-directory: ./terraform
-        run: terraform destroy -auto-approve 
+        run: terraform destroy -auto-approve
