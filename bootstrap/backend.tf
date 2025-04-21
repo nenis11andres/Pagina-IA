@@ -5,9 +5,6 @@ terraform {
     region         = "us-east-1"
     encrypt        = true
     dynamodb_table = "terraform-lock-table"
-
-    # La opción "use_lockfile" es la que reemplaza "dynamodb_table"
-    use_lockfile = true
   }
 }
 
