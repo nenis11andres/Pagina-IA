@@ -41,17 +41,6 @@ jobs:
           terraform output -raw bucket_name > bucket_name.txt
           echo "bucket_name=$(cat bucket_name.txt)" >> $GITHUB_ENV
 
-      - name: ⬆️ Subir archivos al bucket S3
-        run: |
-          echo "Subiendo al bucket: $bucket_name"
-          aws s3 sync . s3://$bucket_name \
-            --exclude ".git/*" \
-            --exclude ".github/*" \
-            --exclude "terraform/*" \
-            --exclude "*.yaml" \
-            --exclude "*.yml" \
-            --delete
-
       - name: 🌐 Mostrar URL del sitio
         working-directory: ./terraform
         run: |
