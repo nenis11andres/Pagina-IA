@@ -29,10 +29,26 @@ jobs:
       - name: Instalar Terraform
         uses: hashicorp/setup-terraform@v3
 
-      - name: Eliminar archivos del bucket S3 (opcional)
+      - name: Eliminar archivos del bucket S3
         run: |
           echo "🧹 Eliminando objetos del bucket: $BUCKET_NAME"
           aws s3 rm s3://$BUCKET_NAME --recursive || true
+
+      - name: Eliminar versiones del bucket S3
+        run: |
+          echo "🧹 Borrando TODAS las versiones del bucket: $BUCKET_NAME"
+
+          versions=$(aws s3api list-object-versions --bucket $BUCKET_NAME --query='{Objects: Versions[].{Key:Key,VersionId:VersionId}}' --output=json)
+          if [ "$versions" != "null" ] && [ "$versions" != "{}" ]; then
+            echo "$versions" > delete.json
+            aws s3api delete-objects --bucket $BUCKET_NAME --delete file://delete.json
+          fi
+
+          markers=$(aws s3api list-object-versions --bucket $BUCKET_NAME --query='{Objects: DeleteMarkers[].{Key:Key,VersionId:VersionId}}' --output=json)
+          if [ "$markers" != "null" ] && [ "$markers" != "{}" ]; then
+            echo "$markers" > delete.json
+            aws s3api delete-objects --bucket $BUCKET_NAME --delete file://delete.json
+          fi
 
       - name: Eliminar estado remoto S3
         run: |
