@@ -1,20 +1,24 @@
+# Configuración del backend de S3 (Este bloque debe estar al inicio de tu archivo)
 terraform {
   backend "s3" {
-    bucket = "aop-pagina-ia"
-    key    = "terraform/terraform.tfstate"
-    region = "us-east-1"
+    bucket = "aop-pagina-ia"            # Nombre del bucket de S3 que debes crear previamente
+    key    = "terraform/terraform.tfstate"  # Ruta donde se almacenará el archivo de estado
+    region = "us-east-1"                 # Región en la que se encuentra el bucket S3
   }
 }
 
+# Proveedor AWS
 provider "aws" {
-  region = var.region
+  region = var.region  # Asegúrate de que la variable `region` esté definida
 }
 
+# Crear el bucket de S3 para tu página estática
 resource "aws_s3_bucket" "pagina_ia" {
-  bucket = var.bucket_name
-  tags   = var.tags
+  bucket = var.bucket_name  # Asegúrate de definir `bucket_name` como variable
+  tags   = var.tags         # Asegúrate de que `tags` esté definida como variable
 }
 
+# Configuración del sitio web estático en el bucket S3
 resource "aws_s3_bucket_website_configuration" "pagina_ia_website" {
   bucket = aws_s3_bucket.pagina_ia.id
 
@@ -27,6 +31,7 @@ resource "aws_s3_bucket_website_configuration" "pagina_ia_website" {
   }
 }
 
+# Configuración del bloque de acceso público al bucket (en caso de que no quieras bloquear acceso)
 resource "aws_s3_bucket_public_access_block" "no_block_public_access" {
   bucket = aws_s3_bucket.pagina_ia.id
 
@@ -36,6 +41,7 @@ resource "aws_s3_bucket_public_access_block" "no_block_public_access" {
   restrict_public_buckets = false
 }
 
+# Política de acceso al bucket para habilitar la lectura pública
 resource "aws_s3_bucket_policy" "policy" {
   bucket = aws_s3_bucket.pagina_ia.id
 
@@ -53,6 +59,7 @@ resource "aws_s3_bucket_policy" "policy" {
   })
 }
 
+# Subir el archivo index.html al bucket S3
 resource "aws_s3_object" "index" {
   bucket       = aws_s3_bucket.pagina_ia.id
   key          = "index.html"
@@ -60,6 +67,7 @@ resource "aws_s3_object" "index" {
   content_type = "text/html"
 }
 
+# Subir el archivo estilos.css al bucket S3
 resource "aws_s3_object" "css" {
   bucket       = aws_s3_bucket.pagina_ia.id
   key          = "estilos.css"
@@ -67,6 +75,7 @@ resource "aws_s3_object" "css" {
   content_type = "text/css"
 }
 
+# Subir los archivos dentro de la carpeta assets al bucket S3
 resource "aws_s3_object" "assets" {
   for_each     = fileset("${path.module}/../assets", "**")
   bucket       = aws_s3_bucket.pagina_ia.id
@@ -85,6 +94,7 @@ resource "aws_s3_object" "assets" {
   )
 }
 
+# Salidas del bucket y URL del sitio web
 output "bucket_name" {
   value = aws_s3_bucket.pagina_ia.bucket
 }
