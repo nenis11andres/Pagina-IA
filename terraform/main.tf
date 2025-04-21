@@ -1,3 +1,13 @@
+terraform {
+  backend "s3" {
+    bucket         = "aop-pagina-ia"
+    key            = "terraform/terraform.tfstate"
+    region         = "us-east-1"
+    dynamodb_table = "terraform-lock-table"
+    encrypt        = true
+  }
+}
+
 provider "aws" {
   region = var.region
 }
@@ -5,6 +15,15 @@ provider "aws" {
 resource "aws_s3_bucket" "pagina_ia" {
   bucket = var.bucket_name
   tags   = var.tags
+}
+
+resource "aws_s3_bucket_public_access_block" "no_block_public_access" {
+  bucket = aws_s3_bucket.pagina_ia.id
+
+  block_public_acls       = false
+  block_public_policy     = false
+  ignore_public_acls      = false
+  restrict_public_buckets = false
 }
 
 resource "aws_s3_bucket_website_configuration" "pagina_ia_website" {
@@ -19,19 +38,8 @@ resource "aws_s3_bucket_website_configuration" "pagina_ia_website" {
   }
 }
 
-resource "aws_s3_bucket_public_access_block" "no_block_public_access" {
-  bucket = aws_s3_bucket.pagina_ia.id
-
-  block_public_acls       = false
-  block_public_policy     = false
-  ignore_public_acls      = false
-  restrict_public_buckets = false
-}
-
 resource "aws_s3_bucket_policy" "policy" {
   bucket = aws_s3_bucket.pagina_ia.id
-
-  depends_on = [aws_s3_bucket_public_access_block.no_block_public_access]
 
   policy = jsonencode({
     Version = "2012-10-17"
