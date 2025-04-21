@@ -1,16 +1,9 @@
-terraform {
-  backend "s3" {
-    bucket         = "aop-pagina-ia-tf-state"  # Cambié el nombre para evitar confusión con el bucket web
-    key            = "terraform/terraform.tfstate"
-    region         = "us-east-1"
-    dynamodb_table = "terraform-lock-table"
-    encrypt        = true
-  }
+provider "aws" {
+  region = "us-east-1"
 }
 
 resource "aws_s3_bucket" "terraform_state" {
-  bucket = "aop-pagina-ia-tf-state"  # Nombre único para el bucket de Terraform
-
+  bucket = "aop-pagina-ia"  # El nombre del bucket para el estado de Terraform
   tags = {
     Name        = "Terraform State Bucket"
     Environment = "prod"
