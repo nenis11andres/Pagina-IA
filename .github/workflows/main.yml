@@ -28,7 +28,7 @@ jobs:
 
       - name:  Inicializar Terraform
         working-directory: ./terraform
-        run: terraform init
+        run: terraform init -force-copy  # Aquí añadimos -force-copy
 
       - name:  Aplicar Terraform
         working-directory: ./terraform
@@ -40,5 +40,3 @@ jobs:
         run: |
           terraform output -raw bucket_name > bucket_name.txt
           echo "bucket_name=$(cat bucket_name.txt)" >> $GITHUB_ENV
-
-     
