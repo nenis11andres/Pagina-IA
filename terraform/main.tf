@@ -1,8 +1,8 @@
 terraform {
   backend "s3" {
-    bucket = var.bucket_name
+    bucket = "aop-pagina-ia"
     key    = "terraform/terraform.tfstate"
-    region = var.region
+    region = "us-east-1"
   }
 }
 
