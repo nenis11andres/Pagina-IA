@@ -10,10 +10,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📥 Clonar repositorio
+      - name:  Clonar repositorio
         uses: actions/checkout@v3
 
-      - name: 🛠️ Configurar Terraform
+      - name:  Configurar Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.5.0
@@ -26,23 +26,19 @@ jobs:
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           aws-region: us-east-1
 
-      - name: 📦 Inicializar Terraform
+      - name:  Inicializar Terraform
         working-directory: ./terraform
         run: terraform init
 
-      - name: 🚀 Aplicar Terraform
+      - name:  Aplicar Terraform
         working-directory: ./terraform
         run: terraform apply -auto-approve
 
-      - name: 📤 Obtener nombre del bucket de forma segura
+      - name:  Obtener nombre del bucket de forma segura
         id: get_bucket
         working-directory: ./terraform
         run: |
           terraform output -raw bucket_name > bucket_name.txt
           echo "bucket_name=$(cat bucket_name.txt)" >> $GITHUB_ENV
 
-      - name: 🌐 Mostrar URL del sitio
-        working-directory: ./terraform
-        run: |
-          WEBSITE_URL=$(terraform output -raw website_url)
-          echo "✅ Sitio desplegado en: http://$WEBSITE_URL"
+     
