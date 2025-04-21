@@ -29,27 +29,19 @@ jobs:
       - name: Instalar Terraform
         uses: hashicorp/setup-terraform@v3
 
-      - name: 🧹 Eliminar objetos del bucket
+      # Eliminar objetos del bucket (si no se había hecho antes)
+      - name: Eliminar objetos del bucket S3
         run: |
-          echo "🧼 Borrando objetos actuales del bucket..."
+          echo "🧹 Eliminando objetos del bucket: $BUCKET_NAME"
           aws s3 rm s3://$BUCKET_NAME --recursive || true
 
-      - name: 🔥 Borrar versiones y delete markers
+      # Eliminar versiones de los objetos si el versionado está habilitado
+      - name: Eliminar versiones de objetos del bucket S3
         run: |
-          echo "🧼 Borrando versiones y delete markers del bucket $BUCKET_NAME..."
-          versions=$(aws s3api list-object-versions --bucket $BUCKET_NAME --query='{Objects: Versions[].{Key:Key,VersionId:VersionId}}' --output=json)
-          delete_markers=$(aws s3api list-object-versions --bucket $BUCKET_NAME --query='{Objects: DeleteMarkers[].{Key:Key,VersionId:VersionId}}' --output=json)
-
-          echo "$versions" > versions.json
-          echo "$delete_markers" > delete-markers.json
-
-          jq -s '.[0].Objects + .[1].Objects | {Objects: .}' versions.json delete-markers.json > all.json
-
-          if [ "$(jq '.Objects | length' all.json)" -gt 0 ]; then
-            aws s3api delete-objects --bucket $BUCKET_NAME --delete file://all.json
-          else
-            echo "✅ No hay versiones o delete markers que eliminar"
-          fi
+          echo "🧹 Eliminando versiones de objetos del bucket: $BUCKET_NAME"
+          aws s3api list-object-versions --bucket $BUCKET_NAME --query "Versions[].[VersionId,Key]" --output text | while read version_id key; do
+            aws s3api delete-object --bucket $BUCKET_NAME --key "$key" --version-id "$version_id" || true
+          done || true
 
       - name: Eliminar estado remoto S3
         run: |
@@ -69,4 +61,4 @@ jobs:
 
       - name: Ejecutar Terraform Destroy
         working-directory: ./terraform
-        run: terraform destroy -auto-approve
+        run: terraform destroy -auto-approve -lock=false
