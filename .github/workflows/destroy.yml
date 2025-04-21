@@ -9,7 +9,7 @@ jobs:
 
     env:
       AWS_REGION: us-east-1
-      BUCKET_NAME: pagina-ia-andres
+      BUCKET_NAME: aop-pagina-ia
 
     steps:
       - name: Checkout repo
