@@ -1,3 +1,11 @@
+terraform {
+  backend "s3" {
+    bucket = var.bucket_name
+    key    = "terraform/terraform.tfstate"
+    region = var.region
+  }
+}
+
 provider "aws" {
   region = var.region
 }
@@ -77,9 +85,6 @@ resource "aws_s3_object" "assets" {
   )
 }
 
-
-
-
 output "bucket_name" {
   value = aws_s3_bucket.pagina_ia.bucket
 }
@@ -87,4 +92,3 @@ output "bucket_name" {
 output "website_url" {
   value = aws_s3_bucket.pagina_ia.website_endpoint
 }
-
