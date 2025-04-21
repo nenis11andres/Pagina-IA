@@ -1,10 +1,8 @@
 name: Desplegar Página IA en S3
 
 on:
-  workflow_run:
-    workflows: ["bootstrap.yml"]  # Este es el nombre del workflow que debes llamar
-    types:
-      - completed  # Esto asegura que el flujo main.yml solo se ejecutará cuando bootstrap.yml termine
+  workflow_dispatch:  # Esto permite que el flujo de trabajo se ejecute manualmente
+
 
 jobs:
   deploy:
