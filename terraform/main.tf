@@ -1,6 +1,6 @@
 terraform {
   backend "s3" {
-    bucket         = "aop-pagina-ia"
+    bucket         = "aop-pagina-ia-tf-state"  # Cambié el nombre para evitar confusión con el bucket web
     key            = "terraform/terraform.tfstate"
     region         = "us-east-1"
     dynamodb_table = "terraform-lock-table"
@@ -8,89 +8,43 @@ terraform {
   }
 }
 
-provider "aws" {
-  region = var.region
-}
+resource "aws_s3_bucket" "terraform_state" {
+  bucket = "aop-pagina-ia-tf-state"  # Nombre único para el bucket de Terraform
 
-# Referencia al bucket ya existente
-data "aws_s3_bucket" "pagina_ia" {
-  bucket = "aop-pagina-ia"
-}
-
-resource "aws_s3_bucket_public_access_block" "no_block_public_access" {
-  bucket = data.aws_s3_bucket.pagina_ia.id
-
-  block_public_acls       = false
-  block_public_policy     = false
-  ignore_public_acls      = false
-  restrict_public_buckets = false
-}
-
-resource "aws_s3_bucket_website_configuration" "pagina_ia_website" {
-  bucket = data.aws_s3_bucket.pagina_ia.id
-
-  index_document {
-    suffix = "index.html"
-  }
-
-  error_document {
-    key = "index.html"
+  tags = {
+    Name        = "Terraform State Bucket"
+    Environment = "prod"
   }
 }
 
-resource "aws_s3_bucket_policy" "policy" {
-  bucket = data.aws_s3_bucket.pagina_ia.id
+resource "aws_s3_bucket_versioning" "versioning" {
+  bucket = aws_s3_bucket.terraform_state.id
 
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid       = "PublicReadGetObject"
-        Effect    = "Allow"
-        Principal = "*"
-        Action    = "s3:GetObject"
-        Resource  = "${data.aws_s3_bucket.pagina_ia.arn}/*"
-      }
-    ]
-  })
+  versioning_configuration {
+    status = "Enabled"
+  }
 }
 
-resource "aws_s3_object" "index" {
-  bucket       = data.aws_s3_bucket.pagina_ia.id
-  key          = "index.html"
-  source       = "${path.module}/../index.html"
-  content_type = "text/html"
+resource "aws_s3_bucket_public_access_block" "no_public_access" {
+  bucket                  = aws_s3_bucket.terraform_state.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
 }
 
-resource "aws_s3_object" "css" {
-  bucket       = data.aws_s3_bucket.pagina_ia.id
-  key          = "estilos.css"
-  source       = "${path.module}/../estilos.css"
-  content_type = "text/css"
-}
+resource "aws_dynamodb_table" "terraform_locks" {
+  name         = "terraform-lock-table"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "LockID"
 
-resource "aws_s3_object" "assets" {
-  for_each     = fileset("${path.module}/../assets", "**")
-  bucket       = data.aws_s3_bucket.pagina_ia.id
-  key          = "assets/${each.value}"
-  source       = "${path.module}/../assets/${each.value}"
-  content_type = lookup(
-    {
-      "png"  = "image/png"
-      "jpg"  = "image/jpeg"
-      "jpeg" = "image/jpeg"
-      "svg"  = "image/svg+xml"
-      "gif"  = "image/gif"
-    },
-    split(".", each.value)[length(split(".", each.value)) - 1],
-    "application/octet-stream"
-  )
-}
+  attribute {
+    name = "LockID"
+    type = "S"
+  }
 
-output "bucket_name" {
-  value = data.aws_s3_bucket.pagina_ia.bucket
-}
-
-output "website_url" {
-  value = data.aws_s3_bucket.pagina_ia.website_endpoint
+  tags = {
+    Name        = "Terraform Lock Table"
+    Environment = "prod"
+  }
 }
