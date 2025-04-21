@@ -18,16 +18,6 @@ resource "aws_s3_bucket" "pagina_ia" {
   tags   = var.tags
 }
 
-# Bloqueo de acceso público para el bucket de la página web
-resource "aws_s3_bucket_public_access_block" "no_block_public_access" {
-  bucket = aws_s3_bucket.pagina_ia.id
-
-  block_public_acls       = false
-  block_public_policy     = false
-  ignore_public_acls      = false
-  restrict_public_buckets = false
-}
-
 # Configuración de la página web estática en el bucket
 resource "aws_s3_bucket_website_configuration" "pagina_ia_website" {
   bucket = aws_s3_bucket.pagina_ia.id
