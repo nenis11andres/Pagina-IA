@@ -11,7 +11,7 @@ jobs:
       AWS_REGION: us-east-1
       BUCKET_NAME: aop-pagina-ia
       STATE_KEY: terraform/terraform.tfstate
-      LOCK_ID: terraform/terraform.tfstate
+      LOCK_ID: aop-pagina-ia/terraform/terraform.tfstate
       DYNAMODB_TABLE: terraform-lock-table
 
     steps:
@@ -29,23 +29,22 @@ jobs:
       - name: Instalar Terraform
         uses: hashicorp/setup-terraform@v3
 
-      - name: Eliminar archivos del bucket S3
+      - name: Eliminar archivos del bucket S3 (opcional)
         run: |
-          echo "🧹 Eliminando archivos del bucket: $BUCKET_NAME"
+          echo "🧹 Eliminando objetos del bucket: $BUCKET_NAME"
           aws s3 rm s3://$BUCKET_NAME --recursive || true
 
-      - name: Eliminar archivo de estado remoto (S3)
+      - name: Eliminar estado remoto S3
         run: |
-          echo "🧨 Eliminando estado remoto: $STATE_KEY"
+          echo "🧨 Eliminando archivo de estado remoto: $STATE_KEY"
           aws s3 rm s3://$BUCKET_NAME/${STATE_KEY} || true
 
-      - name: Limpiar checksum (Digest) en DynamoDB
+      - name: Eliminar lock en DynamoDB
         run: |
-          echo "🔧 Eliminando atributo Digest de DynamoDB..."
-          aws dynamodb update-item \
+          echo "🔓 Eliminando lock de DynamoDB con LockID=$LOCK_ID..."
+          aws dynamodb delete-item \
             --table-name $DYNAMODB_TABLE \
-            --key "{\"LockID\": {\"S\": \"${LOCK_ID}\"}}" \
-            --update-expression "REMOVE Digest" || true
+            --key "{\"LockID\": {\"S\": \"${LOCK_ID}\"}}" || true
 
       - name: Inicializar Terraform
         working-directory: ./terraform
