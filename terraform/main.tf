@@ -16,6 +16,8 @@ provider "aws" {
 resource "aws_s3_bucket" "pagina_ia" {
   bucket = var.bucket_name  # Este nombre debe coincidir con el que usas en el backend
   tags   = var.tags
+
+  force_destroy = true
 }
 
 # Configuración de la página web estática en el bucket
